@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: A template that sets a small service to transcribe chime videos from speech to text
+
+Resources:
+
+  lambdaTranscriberole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSLambdaExecute"
+      Policies:
+        -
+          PolicyName: lambdaTranscribe
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+              - lambda:*
+              - s3:*
+              - sns:*
+              - elastictranscoder:*
+              Resource: "*"
+      RoleName: lambdaTranscribe
+
+  uploadS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      BucketName: 'cjl-aws-interview-raw'
+  postTranscodeBucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      BucketName: 'cjl-aws-interview-transcoded'
+  transcriptionBucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      BucketName: 'cjl-aws-interview-transcribed'
