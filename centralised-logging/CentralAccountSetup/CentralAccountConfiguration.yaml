@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: A template that sets up a centralised logging account to aggregate logs for multiple AWS accounts
+
+Resources:
+  lambdaCodeBucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      BucketName: centralised-lambda-code-demo
+  lambdaCodeBucketPoliciy:
+    Type: "AWS::S3::BucketPolicy"
+      Properties: 
+        Bucket: !Ref lambdaCodeBucket
+        PolicyDocument: 
+          Statement: 
+            - 
+              Action: 
+                - "s3:GetObject"
+              Effect: "Allow"
+              Resource: 
+                Fn::Join: 
+                  - ""
+                  - - !GetAtt lambdaCodeBucket.Arn
+                    - "/*"
+              Principal: "*"
+  centralBucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      BucketName: centralised-log-demo
+  firehoseS3Access:
+    DependsOn: centralBucket
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "firehose.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: firehoseS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: "Allow"
+                Action: "s3:PutObject"
+                Resource: !Join
+                  - ''
+                  - - !GetAtt centralBucket.Arn
+                    - '/*'
+      Path: "/"
+      RoleName: firehoseS3Access
+  firehoseDeliveryStream:
+    DependsOn: firehoseS3Access
+    Type: 'AWS::KinesisFirehose::DeliveryStream'
+    Properties:
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt centralBucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 5
+        CompressionFormat: UNCOMPRESSED
+        RoleARN: !GetAtt firehoseS3Access.Arn

@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Serverless Specification template describing your function.
+Resources:
+  queryIAM:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.6
+      CodeUri: './queryIAM-4aa967d0-3666-470b-b348-b8da896c10e2.zip'
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: 'arn:aws:iam::475272743816:role/queryIAM'
+      Environment:
+        Variables:
+          SNS_TOPIC: 'arn:aws:sns:us-east-1:475272743816:iam-security-event'

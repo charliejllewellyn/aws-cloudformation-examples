@@ -3,5 +3,5 @@ Resources:
   myTrail: 
     Type: "AWS::CloudTrail::Trail"
     Properties: 
-      S3BucketName: 'hackathon-central-logging'
+      S3BucketName: 'central-logging-demo'
       IsLogging: true

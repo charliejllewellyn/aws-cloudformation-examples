@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template optionaly enables GuardDuty and configures it to forward events to CloudWatch in a centralised logging account.
+
+Parameters:
+  enableGuardDuty:
+    Type: String
+    AllowedPattern: "^(true|false)$"
+    Description: "If guard duty is enabled choose false if not enter true to enable guard duty"
+  centralLoggingAccountId:
+    Type: String
+    AllowedPattern: ".+"
+    Description: "The ARN of the centralised CloudWatch event bus"
+
+Conditions:
+  enableGuardDutyTest: !Equals [!Ref enableGuardDuty, "true"]
+Resources:
+  GuardDutyDetector:
+    Condition: enableGuardDutyTest
+    Type: "AWS::GuardDuty::Detector"
+    Properties:
+      Enable: true
+  GuardDutyEventRule:
+    Type: "AWS::Events::Rule"
+    Properties: 
+      Description: Forweards GuardDuty notifications to a central logging account
+      EventPattern: 
+        source:
+          - "aws.guardduty"
+      Name: centralised-logging-demo-guard-duty
+      State: "ENABLED"
+      Targets:
+        - Arn: 
+            !Join
+              - ''
+              - - "arn:aws:events:"
+                - !Ref "AWS::Region"
+                - ":"
+                - !Ref centralLoggingAccountId
+                - ":event-bus/default"
+          Id: "GuardDutyCentralLogging"
