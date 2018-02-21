@@ -4,7 +4,7 @@ Description: A template that sets a small service to transcribe chime videos fro
 
 Resources:
 
-  lambdaTranscriberole:
+  lambdaTranscodeRole:
     Type: "AWS::IAM::Role"
     Properties: 
       AssumeRolePolicyDocument:
@@ -20,24 +20,107 @@ Resources:
       Path: "/"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AWSLambdaExecute"
-      Policies:
+        - "arn:aws:iam::aws:policy/AmazonElasticTranscoderJobsSubmitter"
+      RoleName: lambdaTranscode
+
+  s3SnsTranscodePolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Id: s3SnsTranscodePolicy
+        Statement:
+        - Sid: s3SnsTranscodePolicy
+          Effect: Allow
+          Principal: "*"
+          Action: sns:Publish
+          Resource: 
+            !Join
+              - ''
+              - - "arn:aws:sns:"
+                - !Ref "AWS::Region"
+                - ":"
+                - !Ref "AWS::AccountId"
+                - ":"
+                - !GetAtt snsTranscode.TopicName
+          Condition:
+            ArnEquals:
+              AWS:SourceArn:
+                !Join
+                  - ''
+                  - - "arn:aws:s3:::"
+                    - "cjl-aws-interview-raw"
+      Topics:
+        - 
+          !Join
+            - ''
+            - - "arn:aws:sns:"
+              - !Ref "AWS::Region"
+              - ":"
+              - !Ref "AWS::AccountId"
+              - ":"
+              - !GetAtt snsTranscode.TopicName
+
+  lambdaTranscode:
+    Type: "AWS::Lambda::Function"
+    Properties: 
+      #Code: s3://cjl-lambda-functions/88e6b747c723f29112eaf3c2b8b85bb2
+      Code: 
+        S3Bucket: cjl-lambda-functions
+        S3Key: 88e6b747c723f29112eaf3c2b8b85bb2
+      Description: Transcode video from chime from m4a to mp3
+      FunctionName: cjl-transcode
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt lambdaTranscodeRole.Arn
+      Runtime: python3.6
+      Timeout: 20
+    DependsOn: lambdaTranscodeRole
+
+  snsTranscode:
+    Type: "AWS::SNS::Topic"
+    Properties: 
+      DisplayName: Transcode
+      Subscription:
         -
-          PolicyName: lambdaTranscribe
-          PolicyDocument:
-            Statement:
-            - Effect: Allow
-              Action:
-              - lambda:*
-              - s3:*
-              - sns:*
-              - elastictranscoder:*
-              Resource: "*"
-      RoleName: lambdaTranscribe
+          Endpoint: !GetAtt lambdaTranscode.Arn
+          Protocol: lambda
+      TopicName: transcode
+    DependsOn: lambdaTranscode
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn:
+          !Join
+            - ''
+            - - "arn:aws:sns:"
+              - !Ref "AWS::Region"
+              - ":"
+              - !Ref "AWS::AccountId"
+              - ":"
+              - !GetAtt snsTranscode.TopicName
+      FunctionName: !GetAtt lambdaTranscode.Arn
 
   uploadS3Bucket:
     Type: "AWS::S3::Bucket"
     Properties: 
       BucketName: 'cjl-aws-interview-raw'
+      NotificationConfiguration:
+        TopicConfigurations:
+        -
+          Event: s3:ObjectCreated:*
+          Topic: 
+            !Join
+            - ''
+            - - "arn:aws:sns:"
+              - !Ref "AWS::Region"
+              - ":"
+              - !Ref "AWS::AccountId"
+              - ":"
+              - !GetAtt snsTranscode.TopicName
+    DependsOn: s3SnsTranscodePolicy
   postTranscodeBucket:
     Type: "AWS::S3::Bucket"
     Properties: 
@@ -46,3 +129,16 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties: 
       BucketName: 'cjl-aws-interview-transcribed'
+
+Outputs:
+  snsArn:
+    Description: Information about the value
+    Value: 
+      !Join
+        - ''
+        - - "arn:aws:sns:"
+          - !Ref "AWS::Region"
+          - ":"
+          - !Ref "AWS::AccountId"
+          - ":"
+          - !GetAtt snsTranscode.TopicName
