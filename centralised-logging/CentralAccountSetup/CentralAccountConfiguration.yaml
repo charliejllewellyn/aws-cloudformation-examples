@@ -9,20 +9,20 @@ Resources:
       BucketName: centralised-lambda-code-demo
   lambdaCodeBucketPoliciy:
     Type: "AWS::S3::BucketPolicy"
-      Properties: 
-        Bucket: !Ref lambdaCodeBucket
-        PolicyDocument: 
-          Statement: 
-            - 
-              Action: 
-                - "s3:GetObject"
-              Effect: "Allow"
-              Resource: 
-                Fn::Join: 
-                  - ""
-                  - - !GetAtt lambdaCodeBucket.Arn
-                    - "/*"
-              Principal: "*"
+    Properties: 
+      Bucket: !Ref lambdaCodeBucket
+      PolicyDocument: 
+        Statement: 
+          - 
+            Action: 
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              Fn::Join: 
+                - ""
+                - - !GetAtt lambdaCodeBucket.Arn
+                  - "/*"
+            Principal: "*"
   centralBucket:
     Type: "AWS::S3::Bucket"
     Properties: 
