@@ -23,6 +23,34 @@ Resources:
         - "arn:aws:iam::aws:policy/AmazonElasticTranscoderJobsSubmitter"
       RoleName: lambdaTranscode
 
+  lambdaTranscribeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - transcribe:*
+              Resource: "*"
+          PolicyName: cjl-transcode
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSLambdaExecute"
+      RoleName: lambdaTranscribe
+
   s3SnsTranscodePolicy:
     Type: "AWS::SNS::TopicPolicy"
     Properties:
@@ -61,10 +89,47 @@ Resources:
               - ":"
               - !GetAtt snsTranscode.TopicName
 
+  s3SnsTranscribePolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Id: s3SnsTranscribePolicy
+        Statement:
+        - Sid: s3SnsTranscribePolicy
+          Effect: Allow
+          Principal: "*"
+          Action: sns:Publish
+          Resource: 
+            !Join
+              - ''
+              - - "arn:aws:sns:"
+                - !Ref "AWS::Region"
+                - ":"
+                - !Ref "AWS::AccountId"
+                - ":"
+                - !GetAtt snsTranscribe.TopicName
+          Condition:
+            ArnEquals:
+              AWS:SourceArn:
+                !Join
+                  - ''
+                  - - "arn:aws:s3:::"
+                    - "cjl-aws-interview-transcoded"
+      Topics:
+        - 
+          !Join
+            - ''
+            - - "arn:aws:sns:"
+              - !Ref "AWS::Region"
+              - ":"
+              - !Ref "AWS::AccountId"
+              - ":"
+              - !GetAtt snsTranscribe.TopicName
+
   lambdaTranscode:
     Type: "AWS::Lambda::Function"
     Properties: 
-      #Code: s3://cjl-lambda-functions/88e6b747c723f29112eaf3c2b8b85bb2
       Code: 
         S3Bucket: cjl-lambda-functions
         S3Key: 88e6b747c723f29112eaf3c2b8b85bb2
@@ -76,6 +141,20 @@ Resources:
       Timeout: 20
     DependsOn: lambdaTranscodeRole
 
+  lambdaTranscribe:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        S3Bucket: cjl-lambda-functions
+        S3Key: transcribe1.zip
+      Description: Transcribe Audio
+      FunctionName: cjl-transcribe
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt lambdaTranscribeRole.Arn
+      Runtime: python3.6
+      Timeout: 20
+    DependsOn: lambdaTranscribeRole
+
   snsTranscode:
     Type: "AWS::SNS::Topic"
     Properties: 
@@ -86,6 +165,33 @@ Resources:
           Protocol: lambda
       TopicName: transcode
     DependsOn: lambdaTranscode
+
+  snsTranscribe:
+    Type: "AWS::SNS::Topic"
+    Properties: 
+      DisplayName: Transcribe
+      Subscription:
+        -
+          Endpoint: !GetAtt lambdaTranscribe.Arn
+          Protocol: lambda
+      TopicName: transcribe
+    DependsOn: lambdaTranscribe
+
+  TranscribeLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn:
+          !Join
+            - ''
+            - - "arn:aws:sns:"
+              - !Ref "AWS::Region"
+              - ":"
+              - !Ref "AWS::AccountId"
+              - ":"
+              - !GetAtt snsTranscribe.TopicName
+      FunctionName: !GetAtt lambdaTranscribe.Arn
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
@@ -102,6 +208,26 @@ Resources:
               - ":"
               - !GetAtt snsTranscode.TopicName
       FunctionName: !GetAtt lambdaTranscode.Arn
+
+  TranscribeBucketPolicy: 
+    Type: "AWS::S3::BucketPolicy"
+    Properties: 
+      Bucket: !Ref postTranscodeBucket
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - 
+            Action: "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              Fn::Join: 
+                - ""
+                - 
+                  - "arn:aws:s3:::"
+                  - !Ref postTranscodeBucket
+                  - "/*"
+            Principal: 
+              Service: "transcribe.amazonaws.com"
 
   uploadS3Bucket:
     Type: "AWS::S3::Bucket"
@@ -125,6 +251,20 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties: 
       BucketName: 'cjl-aws-interview-transcoded'
+      NotificationConfiguration:
+        TopicConfigurations:
+        -
+          Event: s3:ObjectCreated:*
+          Topic: 
+            !Join
+            - ''
+            - - "arn:aws:sns:"
+              - !Ref "AWS::Region"
+              - ":"
+              - !Ref "AWS::AccountId"
+              - ":"
+              - !GetAtt snsTranscribe.TopicName
+    DependsOn: s3SnsTranscribePolicy
   transcriptionBucket:
     Type: "AWS::S3::Bucket"
     Properties: 
