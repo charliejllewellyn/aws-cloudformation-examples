@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Deploys a referenace architecture for workspaces"
+
+Parameters: 
+  vpcAdSupernet:
+    Description: "VPC supernet used for managament services like AD"
+    Type: "String"
+    Default: "10.0.0.0/16"
+  vpcTransitSupernet:
+    Description: "VPC supernet used for managament services like AD"
+    Type: "String"
+    Default: "10.1.0.0/16"
+  vpcWorkspacesSupernet:
+    Description: "VPC supernet used for managament services like AD"
+    Type: "String"
+    Default: "10.2.0.0/16"
+
+Resources:
+
+  vpcAd:
+    Type: "AWS::EC2::VPC"
+    Properties: 
+      CidrBlock: !Ref vpcAdSupernet
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  vpcTransit:
+    Type: "AWS::EC2::VPC"
+    Properties: 
+      CidrBlock: !Ref vpcTransitSupernet
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  vpcWorkspaces:
+    Type: "AWS::EC2::VPC"
+    Properties: 
+      CidrBlock: !Ref vpcWorkspacesSupernet
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  peerAdTransit:
+    Type: "AWS::EC2::VPCPeeringConnection"
+    Properties: 
+      PeerVpcId: !Ref vpcTransit
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+      VpcId: !Ref vpcAd
+
+  peerWorkspacesTransit:
+    Type: "AWS::EC2::VPCPeeringConnection"
+    Properties: 
+      PeerVpcId: !Ref vpcTransit
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+      VpcId: !Ref vpcWorkspaces
+
+  peerAdWorkspaces:
+    Type: "AWS::EC2::VPCPeeringConnection"
+    Properties: 
+      PeerVpcId: !Ref vpcWorkspaces
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+      VpcId: !Ref vpcAd
