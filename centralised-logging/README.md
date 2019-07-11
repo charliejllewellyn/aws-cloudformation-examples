@@ -24,8 +24,8 @@ The example cloudformations sets up the following:
 To upload the lambda images run the following command:
 
 ```
-cd LambdaQuery
-aws cloudformation package --template queryIAM.yaml --s3-bucket centralised-lambda-code-demo --output json > queryIAM.json
+cd Lambda/queryIAM
+aws cloudformation package --template queryIAM.yaml --s3-bucket centralised-lambda-code-demo --profile cjl-mjh-acc --output json >queryIAMPackage.yam
 ```
 
 ## Customer logging configurations

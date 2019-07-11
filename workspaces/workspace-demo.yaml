@@ -3,18 +3,54 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Deploys a referenace architecture for workspaces"
 
 Parameters: 
-  vpcAdSupernet:
-    Description: "VPC supernet used for managament services like AD"
-    Type: "String"
-    Default: "10.0.0.0/16"
   vpcTransitSupernet:
     Description: "VPC supernet used for managament services like AD"
     Type: "String"
-    Default: "10.1.0.0/16"
+    Default: "10.0.0.0/16"
+  vpcTransitSubnetA:
+    Description: "VPC subnet used for data transit - AZ-a"
+    Type: "String"
+    Default: "10.0.0.0/24"
+  vpcTransitSubnetB:
+    Description: "VPC subnet used for data transit - AZ-b"
+    Type: "String"
+    Default: "10.0.1.0/24"
+  vpcTransitSubnetC:
+    Description: "VPC subnet used for data transit - AZ-c"
+    Type: "String"
+    Default: "10.0.2.0/24"
   vpcWorkspacesSupernet:
     Description: "VPC supernet used for managament services like AD"
     Type: "String"
+    Default: "10.1.0.0/16"
+  vpcWorkspacesSubnetA:
+    Description: "VPC subnet used for workspaces - AZ-a"
+    Type: "String"
+    Default: "10.1.0.0/24"
+  vpcWorkspacesSubnetB:
+    Description: "VPC subnet used for workspaces - AZ-b"
+    Type: "String"
+    Default: "10.1.1.0/24"
+  vpcWorkspacesSubnetC:
+    Description: "VPC subnet used for workspaces - AZ-c"
+    Type: "String"
+    Default: "10.1.2.0/24"
+  vpcAdSupernet:
+    Description: "VPC supernet used for managament services like AD"
+    Type: "String"
     Default: "10.2.0.0/16"
+  vpcAdSubnetA:
+    Description: "VPC subnet used for managament services like AD - AZ-a"
+    Type: "String"
+    Default: "10.2.0.0/24"
+  vpcAdSubnetB:
+    Description: "VPC subnet used for managament services like AD - AZ-b"
+    Type: "String"
+    Default: "10.2.1.0/24"
+  vpcAdSubnetC:
+    Description: "VPC subnet used for managament services like AD - AZ-c"
+    Type: "String"
+    Default: "10.2.2.0/24"
 
 Resources:
 
@@ -24,6 +60,39 @@ Resources:
       CidrBlock: !Ref vpcAdSupernet
       EnableDnsSupport: true
       EnableDnsHostnames: true
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  subnetAdA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcAd
+      CidrBlock: !Ref vpcAdSubnetA
+      AvailabilityZone: "eu-west-2a"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  subnetAdB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcAd
+      CidrBlock: !Ref vpcAdSubnetB
+      AvailabilityZone: "eu-west-2b"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  subnetAdC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcAd
+      CidrBlock: !Ref vpcAdSubnetC
+      AvailabilityZone: "eu-west-2c"
       Tags:
         - Key: workspace-demo
           Value: dev
@@ -38,6 +107,39 @@ Resources:
         - Key: workspace-demo
           Value: dev
 
+  subnetTransitA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcTransit
+      CidrBlock: !Ref vpcTransitSubnetA
+      AvailabilityZone: "eu-west-2a"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  subnetTransitB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcTransit
+      CidrBlock: !Ref vpcTransitSubnetB
+      AvailabilityZone: "eu-west-2b"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  subnetTransitC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcTransit
+      CidrBlock: !Ref vpcTransitSubnetC
+      AvailabilityZone: "eu-west-2c"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
   vpcWorkspaces:
     Type: "AWS::EC2::VPC"
     Properties: 
@@ -48,14 +150,47 @@ Resources:
         - Key: workspace-demo
           Value: dev
 
-  peerAdTransit:
-    Type: "AWS::EC2::VPCPeeringConnection"
-    Properties: 
-      PeerVpcId: !Ref vpcTransit
+  subnetWorkspacesA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcWorkspaces
+      CidrBlock: !Ref vpcWorkspacesSubnetA
+      AvailabilityZone: "eu-west-2a"
       Tags:
         - Key: workspace-demo
           Value: dev
-      VpcId: !Ref vpcAd
+
+  subnetWorkspacesB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcWorkspaces
+      CidrBlock: !Ref vpcWorkspacesSubnetB
+      AvailabilityZone: "eu-west-2b"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  subnetWorkspacesC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: vpcWorkspaces
+      CidrBlock: !Ref vpcWorkspacesSubnetC
+      AvailabilityZone: "eu-west-2c"
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+
+  peerWorkspacesAd:
+    Type: "AWS::EC2::VPCPeeringConnection"
+    Properties: 
+      PeerVpcId: !Ref vpcAd
+      Tags:
+        - Key: workspace-demo
+          Value: dev
+      VpcId: !Ref vpcWorkspaces
 
   peerWorkspacesTransit:
     Type: "AWS::EC2::VPCPeeringConnection"
@@ -66,11 +201,151 @@ Resources:
           Value: dev
       VpcId: !Ref vpcWorkspaces
 
-  peerAdWorkspaces:
-    Type: "AWS::EC2::VPCPeeringConnection"
-    Properties: 
-      PeerVpcId: !Ref vpcWorkspaces
+  internetGatewayTransit:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
       Tags:
-        - Key: workspace-demo
-          Value: dev
+      - Key: workspace-demo
+        Value: dev
+
+  attachInternetGatewayTransit:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties: 
+      InternetGatewayId: !Ref internetGatewayTransit
+      VpcId: !Ref vpcTransit
+
+  directory:
+    Type: "AWS::DirectoryService::MicrosoftAD"
+    Properties:
+      CreateAlias: true
+      EnableSso: true
+      Name: workspacedemo.local
+      Password: Password123
+      VpcSettings:
+        SubnetIds:
+          - !Ref subnetAdA
+          - !Ref subnetAdB
+        VpcId: !Ref vpcAd
+
+        #  worskapce:
+        #    Type: "AWS::WorkSpaces::Workspace"
+        #    Properties: 
+        #      BundleId: "wsb-df76rqys9"
+        #      DirectoryId: !Ref directory
+        #      UserName: Admin
+        #      RootVolumeEncryptionEnabled: false
+        #      UserVolumeEncryptionEnabled: false
+        #    DependsOn: directory
+
+  routeTableTransit:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref vpcTransit
+      Tags:
+      - Key: workspace-demo
+        Value: dev
+
+  internetRoute:
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref internetGatewayTransit
+      RouteTableId: !Ref routeTableTransit
+
+  workspaceRoute:
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "10.1.0.0/16"
+      VpcPeeringConnectionId: !Ref peerWorkspacesTransit
+      RouteTableId: !Ref routeTableTransit
+
+  subnetRouteTableAssociationTransitA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetTransitA
+      RouteTableId: !Ref routeTableTransit
+
+  subnetRouteTableAssociationTransitB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetTransitB
+      RouteTableId: !Ref routeTableTransit
+
+  subnetRouteTableAssociationTransitC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetTransitC
+      RouteTableId: !Ref routeTableTransit
+
+  routeTableWorkspaces:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref vpcWorkspaces
+      Tags:
+      - Key: workspace-demo
+        Value: dev
+
+  workspaceRouteTransit:
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "0.0.0.0/0"
+      VpcPeeringConnectionId: !Ref peerWorkspacesTransit
+      RouteTableId: !Ref routeTableWorkspaces
+
+  workspaceRouteAd:
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "10.2.0.0/16"
+      VpcPeeringConnectionId: !Ref peerWorkspacesAd
+      RouteTableId: !Ref routeTableWorkspaces
+
+  subnetRouteTableAssociationWorkspacesA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetWorkspacesA
+      RouteTableId: !Ref routeTableWorkspaces
+
+  subnetRouteTableAssociationWorkspacesB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetWorkspacesB
+      RouteTableId: !Ref routeTableWorkspaces
+
+  subnetRouteTableAssociationWorkspacesC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetWorkspacesC
+      RouteTableId: !Ref routeTableWorkspaces
+
+  routeTableAd:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
       VpcId: !Ref vpcAd
+      Tags:
+      - Key: workspace-demo
+        Value: dev
+
+  workspaceRoute:
+    Type: "AWS::EC2::Route"
+    Properties: 
+      DestinationCidrBlock: "10.1.0.0/16"
+      VpcPeeringConnectionId: !Ref peerWorkspacesAd
+      RouteTableId: !Ref routeTableAd
+
+  subnetRouteTableAssociationAdA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetAdA
+      RouteTableId: !Ref routeTableAd
+
+  subnetRouteTableAssociationAdB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetAdB
+      RouteTableId: !Ref routeTableAd
+
+  subnetRouteTableAssociationAdC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetAdC
+      RouteTableId: !Ref routeTableAd
